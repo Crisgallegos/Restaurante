@@ -1,0 +1,45 @@
+body {
+    background-color: #fff8f0; /* beige claro */
+    font-family: 'Arial', sans-serif;
+}
+
+/* Tarjetas de menú */
+#menu-container .card {
+    border: 2px solid #d9534f; /* borde rojo */
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+#menu-container .card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* Botones de mesas */
+#tables-container .btn {
+    width: 120px;
+    font-weight: bold;
+}
+
+/* Pedidos */
+#orders-container .border {
+    background-color: #fff3e0; /* beige suave */
+    border-radius: 8px;
+}
+
+/* Header y Footer */
+header {
+    background: linear-gradient(90deg, #d9534f, #f0ad4e); /* rojo a naranja */
+}
+footer {
+    background: linear-gradient(90deg, #6c757d, #343a40); /* gris oscuro */
+}
+
+/* Responsividad */
+@media(max-width:768px){
+    #menu-container .card {
+        width: 100%;
+    }
+    #tables-container .btn {
+        width: 100px;
+        margin: 3px;
+    }
+}
