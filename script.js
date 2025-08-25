@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzLGlaT_soBdnKbm7ccgtcZ6FruHFZMrflNpDo2cQ_daEqj8uhs_t8Mjqy4bHjBIzdNMg/exec"; // <- reemplaza con la URL de tu Web App
+const API_URL = "TU_WEB_APP_URL"; // <- reemplaza con tu URL de Apps Script
 
 /* --------------------- Helpers --------------------- */
 async function _get(action, params = {}) {
@@ -9,7 +9,7 @@ async function _get(action, params = {}) {
         const text = await response.text();
         return JSON.parse(text).data;
     } catch (err) {
-        console.error("Fallo remoto, usando local", err);
+        console.error("Fallo remoto", err);
         return [];
     }
 }
@@ -30,7 +30,7 @@ async function _post(action, body = {}) {
     }
 }
 
-/* --------------------- Cargar Menú --------------------- */
+/* --------------------- Menú --------------------- */
 async function getMenu() {
     const menu = await _get("menu");
     const container = document.getElementById("menu-container");
@@ -51,7 +51,7 @@ async function getMenu() {
     });
 }
 
-/* --------------------- Cargar Mesas --------------------- */
+/* --------------------- Mesas --------------------- */
 async function getTables() {
     const tables = await _get("tables");
     const container = document.getElementById("tables-container");
@@ -66,7 +66,7 @@ async function getTables() {
     });
 }
 
-/* --------------------- Cargar Pedidos --------------------- */
+/* --------------------- Pedidos --------------------- */
 async function getOrders(status = "") {
     const orders = await _get("orders", status ? { estado: status } : {});
     const container = document.getElementById("orders-container");
@@ -77,7 +77,7 @@ async function getOrders(status = "") {
         div.innerHTML = `
             <h6>Mesa ${order.mesa} - Estado: ${order.estado}</h6>
             <ul>
-                ${order.items.map(i => `<li>${i.plato} x ${i.cantidad} = $${i.subtotal}</li>`).join("")}
+                ${order.items.map(i => `<li>${i.plato} x ${i.cantidad} = $${i.subtotal || i.precio}</li>`).join("")}
             </ul>
             <strong>Total: $${order.total}</strong>
             ${order.estado === "en_proceso" ? `<button class="btn btn-primary btn-sm" onclick='markServed("${order.idPedido}")'>Entregado</button>` : ""}
@@ -87,8 +87,9 @@ async function getOrders(status = "") {
     });
 }
 
-/* --------------------- Pedido Actual --------------------- */
+/* --------------------- Pedido actual --------------------- */
 let currentOrder = { mesa: null, items: [] };
+
 function selectTable(mesa) {
     currentOrder.mesa = mesa;
     currentOrder.items = [];
@@ -113,7 +114,7 @@ async function sendOrder() {
     }
 }
 
-/* --------------------- Actualizar Estado --------------------- */
+/* --------------------- Actualizar estado --------------------- */
 async function markServed(idPedido) {
     await _post("updateOrderStatus", { idPedido, estado: "entregado" });
     loadData();
@@ -124,12 +125,11 @@ async function markPaid(idPedido) {
     loadData();
 }
 
-/* --------------------- Cargar Todo --------------------- */
+/* --------------------- Cargar todo --------------------- */
 async function loadData() {
     await getMenu();
     await getTables();
     await getOrders();
 }
 
-/* --------------------- Inicializar --------------------- */
 document.addEventListener("DOMContentLoaded", loadData);
