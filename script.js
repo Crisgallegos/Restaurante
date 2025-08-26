@@ -1,135 +1,150 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbzNiXqpas0d7prbb_rHGoR7p1EePl1bmVIuSHkia0v_7CcyagSBXtQCTmIePs-6EYtlCg/exec"; // <- reemplaza con tu URL de Apps Script
+// =============================
+// CONFIGURACIÓN
+// =============================
+const API_URL = "https://script.google.com/macros/s/AKfycbzlz2QfTgUu4sdwgJfdHTCHYXfvMN66N3ZCTaZN4MXFA8N0MQ_x74_8JoAIhQY7CExVnw/exec"; 
+// 👆 reemplaza con la URL de tu despliegue en Apps Script
 
-/* --------------------- Helpers --------------------- */
-async function _get(action, params = {}) {
-    try {
-        const query = new URLSearchParams({ action, ...params }).toString();
-        const url = `${API_URL}?${query}`;
-        const response = await fetch(url);
-        const text = await response.text();
-        return JSON.parse(text).data;
-    } catch (err) {
-        console.error("Fallo remoto", err);
-        return [];
-    }
+// =============================
+// FUNCIONES AUXILIARES
+// =============================
+async function _get(action) {
+  try {
+    const res = await fetch(`${API_URL}?action=${action}`);
+    if (!res.ok) throw new Error("Error HTTP " + res.status);
+    return await res.json();
+  } catch (err) {
+    console.error("Fallo remoto", err);
+    return [];
+  }
 }
 
-async function _post(action, body = {}) {
-    try {
-        body.action = action;
-        const res = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
-        const text = await res.text();
-        return JSON.parse(text).data;
-    } catch (err) {
-        console.error("POST falló", err);
-        return null;
-    }
+async function _post(data) {
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error("Error HTTP " + res.status);
+    return await res.json();
+  } catch (err) {
+    console.error("Fallo remoto", err);
+    return { error: err.message };
+  }
 }
 
-/* --------------------- Menú --------------------- */
+// =============================
+// OBTENER DATOS
+// =============================
 async function getMenu() {
-    const menu = await _get("menu");
-    const container = document.getElementById("menu-container");
-    container.innerHTML = "";
-    menu.forEach(item => {
-        const card = document.createElement("div");
-        card.className = "card m-2";
-        card.style.width = "14rem";
-        card.innerHTML = `
-            <div class="card-body">
-                <h5 class="card-title">${item.nombre}</h5>
-                <p class="card-text">${item.descripcion}</p>
-                <p class="card-text fw-bold">$${item.precio}</p>
-                <button class="btn btn-success btn-sm" onclick='addToOrder("${item.nombre}",${item.precio})'>Agregar</button>
-            </div>
-        `;
-        container.appendChild(card);
-    });
+  return await _get("menu");
 }
 
-/* --------------------- Mesas --------------------- */
 async function getTables() {
-    const tables = await _get("tables");
-    const container = document.getElementById("tables-container");
-    container.innerHTML = "";
-    tables.forEach(table => {
-        const btn = document.createElement("button");
-        btn.className = "btn m-1 " + (table.estado === "libre" ? "btn-success" : "btn-danger");
-        btn.innerText = `Mesa ${table.mesa} - ${table.estado.toUpperCase()}`;
-        btn.disabled = table.estado !== "libre";
-        btn.onclick = () => selectTable(table.mesa);
-        container.appendChild(btn);
-    });
+  return await _get("tables");
 }
 
-/* --------------------- Pedidos --------------------- */
-async function getOrders(status = "") {
-    const orders = await _get("orders", status ? { estado: status } : {});
-    const container = document.getElementById("orders-container");
-    container.innerHTML = "";
-    orders.forEach(order => {
-        const div = document.createElement("div");
-        div.className = "border p-2 mb-2";
-        div.innerHTML = `
-            <h6>Mesa ${order.mesa} - Estado: ${order.estado}</h6>
-            <ul>
-                ${order.items.map(i => `<li>${i.plato} x ${i.cantidad} = $${i.subtotal || i.precio}</li>`).join("")}
-            </ul>
-            <strong>Total: $${order.total}</strong>
-            ${order.estado === "en_proceso" ? `<button class="btn btn-primary btn-sm" onclick='markServed("${order.idPedido}")'>Entregado</button>` : ""}
-            ${order.estado === "entregado" ? `<button class="btn btn-success btn-sm" onclick='markPaid("${order.idPedido}")'>Pagar</button>` : ""}
-        `;
-        container.appendChild(div);
-    });
+async function getOrders() {
+  return await _get("orders");
 }
 
-/* --------------------- Pedido actual --------------------- */
-let currentOrder = { mesa: null, items: [] };
-
-function selectTable(mesa) {
-    currentOrder.mesa = mesa;
-    currentOrder.items = [];
-    alert("Mesa " + mesa + " seleccionada para el pedido");
+async function saveOrder(mesa, items, total) {
+  return await _post({ mesa, items, total });
 }
+
+// =============================
+// RENDERIZADO EN EL DOM
+// =============================
+
+// Renderizar menú
+async function renderMenu() {
+  const menu = await getMenu();
+  const container = document.getElementById("menu");
+  container.innerHTML = "";
+
+  menu.forEach(item => {
+    const div = document.createElement("div");
+    div.classList.add("card", "m-2", "p-2");
+    div.innerHTML = `
+      <h5>${item.Nombre}</h5>
+      <p>Precio: $${item.Precio}</p>
+      <button class="btn btn-sm btn-primary" onclick="addToOrder('${item.Nombre}', ${item.Precio})">Agregar</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// Renderizar mesas
+async function renderTables() {
+  const tables = await getTables();
+  const container = document.getElementById("tables");
+  container.innerHTML = "";
+
+  tables.forEach(t => {
+    const div = document.createElement("div");
+    div.classList.add("card", "m-2", "p-2");
+    div.innerHTML = `
+      <h5>Mesa ${t.Numero}</h5>
+      <p>Estado: ${t.Estado}</p>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// =============================
+// CARRITO DE PEDIDOS
+// =============================
+let currentOrder = [];
+let currentMesa = null;
 
 function addToOrder(nombre, precio) {
-    if (!currentOrder.mesa) { alert("Selecciona una mesa primero"); return; }
-    currentOrder.items.push({ plato: nombre, precio, cantidad: 1 });
-    alert(`${nombre} agregado al pedido de la mesa ${currentOrder.mesa}`);
+  currentOrder.push({ nombre, precio });
+  renderOrder();
 }
 
-async function sendOrder() {
-    if (!currentOrder.mesa || currentOrder.items.length === 0) { alert("Mesa o items vacíos"); return; }
-    const result = await _post("createOrder", currentOrder);
-    if (result && result.idPedido) {
-        alert("Pedido creado correctamente!");
-        currentOrder = { mesa: null, items: [] };
-        loadData();
-    } else {
-        alert("Error al crear pedido");
-    }
+function renderOrder() {
+  const container = document.getElementById("order");
+  container.innerHTML = "";
+
+  let total = 0;
+  currentOrder.forEach(item => {
+    total += item.precio;
+    const li = document.createElement("li");
+    li.textContent = `${item.nombre} - $${item.precio}`;
+    container.appendChild(li);
+  });
+
+  document.getElementById("total").textContent = "Total: $" + total;
 }
 
-/* --------------------- Actualizar estado --------------------- */
-async function markServed(idPedido) {
-    await _post("updateOrderStatus", { idPedido, estado: "entregado" });
-    loadData();
+async function confirmOrder() {
+  if (!currentMesa) {
+    alert("Selecciona una mesa antes de confirmar el pedido.");
+    return;
+  }
+  if (currentOrder.length === 0) {
+    alert("El pedido está vacío.");
+    return;
+  }
+
+  let total = currentOrder.reduce((acc, i) => acc + i.precio, 0);
+  const result = await saveOrder(currentMesa, currentOrder, total);
+
+  if (result.success) {
+    alert("Pedido guardado con éxito ✅");
+    currentOrder = [];
+    renderOrder();
+  } else {
+    alert("Error al guardar el pedido ❌");
+  }
 }
 
-async function markPaid(idPedido) {
-    await _post("markPaid", { idPedido });
-    loadData();
-}
-
-/* --------------------- Cargar todo --------------------- */
+// =============================
+// INICIALIZACIÓN
+// =============================
 async function loadData() {
-    await getMenu();
-    await getTables();
-    await getOrders();
+  await renderMenu();
+  await renderTables();
 }
 
 document.addEventListener("DOMContentLoaded", loadData);
