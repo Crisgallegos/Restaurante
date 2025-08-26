@@ -2,60 +2,38 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Restaurante</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .mesa-card.libre { background: #d4edda; }
-    .mesa-card.ocupada { background: #f8d7da; }
-  </style>
 </head>
-<body>
-  <!-- Navbar -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">Restaurante</a>
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav me-auto">
-          <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#mesas">Mesas</a></li>
-          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#pedidos">Pedidos</a></li>
-          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#caja">Caja</a></li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+<body class="bg-light">
 
-  <!-- Contenido -->
-  <div class="container mt-4">
-    <div class="tab-content">
-      <div class="tab-pane fade show active" id="mesas">
-        <div class="row" id="tables"></div>
-      </div>
-      <div class="tab-pane fade" id="pedidos">
-        <div id="orders"></div>
-      </div>
-      <div class="tab-pane fade" id="caja">
-        <div id="caja"></div>
-      </div>
-    </div>
+  <div class="container py-4">
+    <h1 class="text-center mb-4">🍽️ Restaurante</h1>
+
+    <h3>Mesas disponibles</h3>
+    <div id="tables" class="row g-3"></div>
   </div>
 
-  <!-- Modal Menú -->
-  <div class="modal fade" id="menuModal" tabindex="-1">
-    <div class="modal-dialog">
+  <!-- Modal de Menú -->
+  <div class="modal fade" id="menuModal" tabindex="-1" aria-labelledby="menuModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Menú</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h5 class="modal-title" id="menuModalLabel">Menú - Mesa <span id="mesaSeleccionada"></span></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
-        <div class="modal-body" id="menu-items"></div>
+        <div class="modal-body">
+          <div id="menu" class="row row-cols-1 row-cols-md-2 g-4"></div>
+        </div>
         <div class="modal-footer">
-          <button class="btn btn-primary" id="confirmOrderBtn">Confirmar pedido</button>
+          <button class="btn btn-success" id="btnConfirmarPedido">Confirmar pedido</button>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

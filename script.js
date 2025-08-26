@@ -1,150 +1,106 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbyVsQQqvwXJ9z6l4S2o4hluDLjmtoBBCYOJ0wfJPa-d3o-hvl0HeURo-Pics2XPAkGzYw/exec"; // cambia por tu URL webapp
+const API_URL = "https://script.google.com/macros/s/AKfycbxPOQxO3WLbU2RLQjkiguggKYVC5eZlSnDOBk_Q_nprL7_JmQyjxxJNecExnoNYM9Tv7g/exec"; // <-- pega aquí tu URL de despliegue de Apps Script
 
+let selectedTable = null;
+let selectedItems = [];
+
+// Función genérica GET
 async function _get(action) {
   try {
     const res = await fetch(`${API_URL}?action=${action}`);
-    return res.json();
+    return await res.json();
   } catch (err) {
     console.error("Error GET:", err);
   }
 }
 
-async function _post(data) {
+// Función genérica POST
+async function _post(action, data) {
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch(`${API_URL}?action=${action}`, {
       method: "POST",
-      body: JSON.stringify(data),
-      headers: { "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
     });
-    return res.json();
+    return await res.json();
   } catch (err) {
     console.error("Error POST:", err);
   }
 }
 
-// === Render Mesas ===
+// Renderizar Mesas
 async function renderTables() {
+  const tables = await _get("tables");
   const container = document.getElementById("tables");
   container.innerHTML = "";
-  let tables = await _get("tables");
 
-  tables.forEach(table => {
-    const col = document.createElement("div");
-    col.className = "col-md-3";
-
-    const card = document.createElement("div");
-    card.className = `card mesa-card ${table.estado}`;
-    card.innerHTML = `
-      <div class="card-body">
-        <h5 class="card-title">${table.nombre}</h5>
-        <p class="card-text">Estado: ${table.estado}</p>
+  tables.forEach(t => {
+    const div = document.createElement("div");
+    div.className = "col-md-3";
+    div.innerHTML = `
+      <div class="card shadow-sm">
+        <div class="card-body text-center">
+          <h5 class="card-title">Mesa ${t.Nombre}</h5>
+          <p class="card-text">Estado: <strong>${t.Estado}</strong></p>
+          <button class="btn btn-primary btn-sm" onclick="abrirMenu('${t.Nombre}')">Pedir</button>
+        </div>
       </div>
     `;
-    card.addEventListener("click", () => openMenuModal(table));
-    col.appendChild(card);
-    container.appendChild(col);
+    container.appendChild(div);
   });
 }
 
-// === Modal de menú ===
-async function openMenuModal(table) {
-  const menuContainer = document.getElementById("menu-items");
-  menuContainer.innerHTML = "";
+// Abrir menú para una mesa
+async function abrirMenu(mesa) {
+  selectedTable = mesa;
+  selectedItems = [];
 
-  let menu = await _get("menu");
+  document.getElementById("mesaSeleccionada").innerText = mesa;
+
+  const menu = await _get("menu");
+  const container = document.getElementById("menu");
+  container.innerHTML = "";
+
   menu.forEach(item => {
     const div = document.createElement("div");
-    div.className = "form-check";
+    div.className = "col";
     div.innerHTML = `
-      <input class="form-check-input" type="checkbox" value="${item.id}" data-nombre="${item.nombre}" data-precio="${item.precio}">
-      <label class="form-check-label">${item.nombre} - $${item.precio}</label>
-    `;
-    menuContainer.appendChild(div);
-  });
-
-  document.getElementById("confirmOrderBtn").onclick = () => confirmOrder(table);
-  new bootstrap.Modal(document.getElementById("menuModal")).show();
-}
-
-async function confirmOrder(table) {
-  const selected = document.querySelectorAll("#menu-items input:checked");
-  let items = [];
-  selected.forEach(el => {
-    items.push({
-      id: el.value,
-      nombre: el.dataset.nombre,
-      precio: el.dataset.precio
-    });
-  });
-
-  await _post({ action: "createOrder", mesaId: table.id, items });
-  bootstrap.Modal.getInstance(document.getElementById("menuModal")).hide();
-  renderTables();
-  renderOrders();
-}
-
-// === Pedidos ===
-async function renderOrders() {
-  const container = document.getElementById("orders");
-  container.innerHTML = "";
-  let orders = await _get("orders");
-
-  orders.forEach(order => {
-    const div = document.createElement("div");
-    div.className = "card mb-2";
-    div.innerHTML = `
-      <div class="card-body">
-        <h5>Mesa ${order.mesaId}</h5>
-        <p>Estado: ${order.estado}</p>
-        <ul>${order.items.map(i => `<li>${i.nombre} - $${i.precio}</li>`).join("")}</ul>
-        ${order.estado === "en proceso" 
-          ? `<button class="btn btn-success" onclick="updateStatus(${order.mesaId}, 'entregado')">Marcar entregado</button>` 
-          : ""}
+      <div class="card h-100 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">${item.Nombre}</h5>
+          <p class="card-text">Precio: $${item.Precio}</p>
+          <button class="btn btn-outline-success btn-sm" onclick="agregarItem('${item.Nombre}', ${item.Precio})">Agregar</button>
+        </div>
       </div>
     `;
     container.appendChild(div);
   });
+
+  const modal = new bootstrap.Modal(document.getElementById("menuModal"));
+  modal.show();
 }
 
-async function updateStatus(mesaId, estado) {
-  await _post({ action: "updateOrderStatus", mesaId, estado });
-  renderOrders();
-  renderCaja();
+// Agregar item al pedido
+function agregarItem(nombre, precio) {
+  selectedItems.push({ nombre, precio });
+  console.log("Pedido actual:", selectedItems);
 }
 
-// === Caja ===
-async function renderCaja() {
-  const container = document.getElementById("caja");
-  container.innerHTML = "";
-  let orders = await _get("orders");
+// Confirmar pedido
+document.getElementById("btnConfirmarPedido").addEventListener("click", async () => {
+  if (!selectedTable || selectedItems.length === 0) {
+    alert("Selecciona al menos un producto");
+    return;
+  }
 
-  let entregados = orders.filter(o => o.estado === "entregado");
+  await _post("order", { table: selectedTable, items: selectedItems });
+  alert("Pedido confirmado para mesa " + selectedTable);
 
-  entregados.forEach(order => {
-    const total = order.items.reduce((sum, i) => sum + Number(i.precio), 0);
-    const div = document.createElement("div");
-    div.className = "card mb-2";
-    div.innerHTML = `
-      <div class="card-body">
-        <h5>Mesa ${order.mesaId}</h5>
-        <ul>${order.items.map(i => `<li>${i.nombre} - $${i.precio}</li>`).join("")}</ul>
-        <p><strong>Total: $${total}</strong></p>
-        <button class="btn btn-primary" onclick="pay(${order.mesaId})">Pagar</button>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
+  const modal = bootstrap.Modal.getInstance(document.getElementById("menuModal"));
+  modal.hide();
+  renderTables(); // refresca mesas
+});
 
-async function pay(mesaId) {
-  await _post({ action: "payOrder", mesaId });
-  renderTables();
-  renderCaja();
-}
-
-// === Inicialización ===
+// Inicialización
 document.addEventListener("DOMContentLoaded", () => {
   renderTables();
-  renderOrders();
-  renderCaja();
 });
