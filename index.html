@@ -2,93 +2,60 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Restaurante</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background: #f8f9fa; }
-    .mesa-card { cursor: pointer; transition: 0.3s; }
-    .mesa-card:hover { transform: scale(1.05); }
-    .ocupada { background-color: #ffcccc !important; }
-    .libre { background-color: #ccffcc !important; }
-    .nav-link { cursor: pointer; }
+    .mesa-card.libre { background: #d4edda; }
+    .mesa-card.ocupada { background: #f8d7da; }
   </style>
 </head>
 <body>
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="#">🍽️ Restaurante</a>
+      <a class="navbar-brand" href="#">Restaurante</a>
       <div class="collapse navbar-collapse">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item"><a class="nav-link active" id="nav-mesas">Mesas</a></li>
-          <li class="nav-item"><a class="nav-link" id="nav-pedidos">Pedidos</a></li>
-          <li class="nav-item"><a class="nav-link" id="nav-caja">Caja</a></li>
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#mesas">Mesas</a></li>
+          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#pedidos">Pedidos</a></li>
+          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#caja">Caja</a></li>
         </ul>
       </div>
     </div>
   </nav>
 
+  <!-- Contenido -->
   <div class="container mt-4">
-    <!-- SECCIÓN MESAS -->
-    <section id="seccion-mesas">
-      <h2 class="mb-4">Mesas disponibles</h2>
-      <div id="tables" class="row g-3"></div>
-      <hr>
-      <h3>Menú</h3>
-      <div id="menu" class="row g-3"></div>
-      <h3 class="mt-4">Pedido actual</h3>
-      <ul id="order"></ul>
-      <p id="total">Total: $0</p>
-      <button class="btn btn-success" onclick="confirmOrder()">Confirmar pedido</button>
-    </section>
-
-    <!-- SECCIÓN PEDIDOS -->
-    <section id="seccion-pedidos" class="d-none">
-      <h2 class="mb-4">Pedidos del día</h2>
-      <div id="orders" class="row g-3"></div>
-    </section>
-
-    <!-- SECCIÓN CAJA -->
-    <section id="seccion-caja" class="d-none">
-      <h2 class="mb-4">Caja</h2>
-      <div id="caja" class="row g-3"></div>
-    </section>
+    <div class="tab-content">
+      <div class="tab-pane fade show active" id="mesas">
+        <div class="row" id="tables"></div>
+      </div>
+      <div class="tab-pane fade" id="pedidos">
+        <div id="orders"></div>
+      </div>
+      <div class="tab-pane fade" id="caja">
+        <div id="caja"></div>
+      </div>
+    </div>
   </div>
 
+  <!-- Modal Menú -->
+  <div class="modal fade" id="menuModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Menú</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="menu-items"></div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="confirmOrderBtn">Confirmar pedido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="script.js"></script>
-  <script>
-    // Navegación entre secciones
-    document.getElementById("nav-mesas").addEventListener("click", () => {
-      document.getElementById("seccion-mesas").classList.remove("d-none");
-      document.getElementById("seccion-pedidos").classList.add("d-none");
-      document.getElementById("seccion-caja").classList.add("d-none");
-      document.getElementById("nav-mesas").classList.add("active");
-      document.getElementById("nav-pedidos").classList.remove("active");
-      document.getElementById("nav-caja").classList.remove("active");
-    });
-
-    document.getElementById("nav-pedidos").addEventListener("click", () => {
-      document.getElementById("seccion-mesas").classList.add("d-none");
-      document.getElementById("seccion-pedidos").classList.remove("d-none");
-      document.getElementById("seccion-caja").classList.add("d-none");
-      document.getElementById("nav-pedidos").classList.add("active");
-      document.getElementById("nav-mesas").classList.remove("active");
-      document.getElementById("nav-caja").classList.remove("active");
-      renderOrders();
-    });
-
-    document.getElementById("nav-caja").addEventListener("click", () => {
-      document.getElementById("seccion-mesas").classList.add("d-none");
-      document.getElementById("seccion-pedidos").classList.add("d-none");
-      document.getElementById("seccion-caja").classList.remove("d-none");
-      document.getElementById("nav-caja").classList.add("active");
-      document.getElementById("nav-mesas").classList.remove("active");
-      document.getElementById("nav-pedidos").classList.remove("active");
-      renderCaja();
-    });
-  </script>
 </body>
 </html>
-
-

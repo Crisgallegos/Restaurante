@@ -1,31 +1,11 @@
-// ============================
-// CONFIGURACIÓN
-// ============================
-const API_URL = "https://script.google.com/macros/s/AKfycbzlz2QfTgUu4sdwgJfdHTCHYXfvMN66N3ZCTaZN4MXFA8N0MQ_x74_8JoAIhQY7CExVnw/exec"; // reemplaza con tu URL
-let currentMesa = null;
-let currentOrder = [];
+const API_URL = "https://script.google.com/macros/s/AKfycbyVsQQqvwXJ9z6l4S2o4hluDLjmtoBBCYOJ0wfJPa-d3o-hvl0HeURo-Pics2XPAkGzYw/exec"; // cambia por tu URL webapp
 
-// Mesas locales
-const mesasLocales = [
-  { id: 1, nombre: "Mesa 1", estado: "libre" },
-  { id: 2, nombre: "Mesa 2", estado: "libre" },
-  { id: 3, nombre: "Mesa 3", estado: "libre" },
-  { id: 4, nombre: "Mesa 4", estado: "libre" },
-  { id: 5, nombre: "Mesa 5", estado: "libre" },
-  { id: 6, nombre: "Mesa 6", estado: "libre" }
-];
-
-// ============================
-// FUNCIONES AUXILIARES
-// ============================
 async function _get(action) {
   try {
     const res = await fetch(`${API_URL}?action=${action}`);
-    if (!res.ok) throw new Error("Error HTTP " + res.status);
-    return await res.json();
+    return res.json();
   } catch (err) {
-    console.error("Fallo remoto", err);
-    return [];
+    console.error("Error GET:", err);
   }
 }
 
@@ -33,25 +13,22 @@ async function _post(data) {
   try {
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      headers: { "Content-Type": "application/json" }
     });
-    if (!res.ok) throw new Error("Error HTTP " + res.status);
-    return await res.json();
+    return res.json();
   } catch (err) {
-    console.error("Fallo remoto", err);
-    return { error: err.message };
+    console.error("Error POST:", err);
   }
 }
 
-// ============================
-// RENDERIZADO MESAS Y MENÚ
-// ============================
-function renderTables() {
+// === Render Mesas ===
+async function renderTables() {
   const container = document.getElementById("tables");
   container.innerHTML = "";
+  let tables = await _get("tables");
 
-  mesasLocales.forEach(table => {
+  tables.forEach(table => {
     const col = document.createElement("div");
     col.className = "col-md-3";
 
@@ -63,136 +40,111 @@ function renderTables() {
         <p class="card-text">Estado: ${table.estado}</p>
       </div>
     `;
-    card.addEventListener("click", () => selectTable(table));
+    card.addEventListener("click", () => openMenuModal(table));
     col.appendChild(card);
     container.appendChild(col);
   });
 }
 
-function selectTable(table) {
-  if (table.estado === "ocupada") {
-    alert("Esta mesa ya está ocupada");
-    return;
-  }
-  currentMesa = table.nombre;
-  alert(`Mesa seleccionada: ${table.nombre}`);
-}
+// === Modal de menú ===
+async function openMenuModal(table) {
+  const menuContainer = document.getElementById("menu-items");
+  menuContainer.innerHTML = "";
 
-// Render menú desde Apps Script
-async function renderMenu() {
-  const menu = await _get("menu");
-  const container = document.getElementById("menu");
-  container.innerHTML = "";
-
+  let menu = await _get("menu");
   menu.forEach(item => {
-    const col = document.createElement("div");
-    col.className = "col-md-3";
-
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <div class="card-body">
-        <h5>${item.Nombre}</h5>
-        <p>Precio: $${item.Precio}</p>
-        <button class="btn btn-sm btn-primary" onclick="addToOrder('${item.Nombre}', ${item.Precio})">Agregar</button>
-      </div>
+    const div = document.createElement("div");
+    div.className = "form-check";
+    div.innerHTML = `
+      <input class="form-check-input" type="checkbox" value="${item.id}" data-nombre="${item.nombre}" data-precio="${item.precio}">
+      <label class="form-check-label">${item.nombre} - $${item.precio}</label>
     `;
-    col.appendChild(card);
-    container.appendChild(col);
-  });
-}
-
-// ============================
-// CARRITO DE PEDIDO
-// ============================
-function addToOrder(nombre, precio) {
-  if (!currentMesa) {
-    alert("Selecciona una mesa primero");
-    return;
-  }
-  currentOrder.push({ nombre, precio });
-  renderOrder();
-}
-
-function renderOrder() {
-  const container = document.getElementById("order");
-  container.innerHTML = "";
-  let total = 0;
-
-  currentOrder.forEach(item => {
-    total += item.precio;
-    const li = document.createElement("li");
-    li.textContent = `${item.nombre} - $${item.precio}`;
-    container.appendChild(li);
+    menuContainer.appendChild(div);
   });
 
-  document.getElementById("total").textContent = `Total: $${total}`;
+  document.getElementById("confirmOrderBtn").onclick = () => confirmOrder(table);
+  new bootstrap.Modal(document.getElementById("menuModal")).show();
 }
 
-// ============================
-// CONFIRMAR PEDIDO
-// ============================
-async function confirmOrder() {
-  if (!currentMesa) { alert("Selecciona una mesa"); return; }
-  if (currentOrder.length === 0) { alert("El pedido está vacío"); return; }
+async function confirmOrder(table) {
+  const selected = document.querySelectorAll("#menu-items input:checked");
+  let items = [];
+  selected.forEach(el => {
+    items.push({
+      id: el.value,
+      nombre: el.dataset.nombre,
+      precio: el.dataset.precio
+    });
+  });
 
-  const total = currentOrder.reduce((acc, i) => acc + i.precio, 0);
-  const result = await _post({ mesa: currentMesa, items: currentOrder, total });
-
-  if (result.success) {
-    alert("Pedido guardado ✅");
-    // Marcar mesa como ocupada localmente
-    mesasLocales.find(m => m.nombre === currentMesa).estado = "ocupada";
-    renderTables();
-    currentOrder = [];
-    renderOrder();
-    currentMesa = null;
-  } else {
-    alert("Error guardando el pedido ❌");
-  }
+  await _post({ action: "createOrder", mesaId: table.id, items });
+  bootstrap.Modal.getInstance(document.getElementById("menuModal")).hide();
+  renderTables();
+  renderOrders();
 }
 
-// ============================
-// PEDIDOS Y CAJA
-// ============================
+// === Pedidos ===
 async function renderOrders() {
-  const pedidos = await _get("orders");
   const container = document.getElementById("orders");
   container.innerHTML = "";
+  let orders = await _get("orders");
 
-  pedidos.forEach(p => {
-    const card = document.createElement("div");
-    card.className = "card p-2 mb-2";
-    card.innerHTML = `
-      <h5>${p.mesa}</h5>
-      <p>Estado: ${p.estado}</p>
-      <p>Total: $${p.total}</p>
+  orders.forEach(order => {
+    const div = document.createElement("div");
+    div.className = "card mb-2";
+    div.innerHTML = `
+      <div class="card-body">
+        <h5>Mesa ${order.mesaId}</h5>
+        <p>Estado: ${order.estado}</p>
+        <ul>${order.items.map(i => `<li>${i.nombre} - $${i.precio}</li>`).join("")}</ul>
+        ${order.estado === "en proceso" 
+          ? `<button class="btn btn-success" onclick="updateStatus(${order.mesaId}, 'entregado')">Marcar entregado</button>` 
+          : ""}
+      </div>
     `;
-    container.appendChild(card);
+    container.appendChild(div);
   });
 }
 
+async function updateStatus(mesaId, estado) {
+  await _post({ action: "updateOrderStatus", mesaId, estado });
+  renderOrders();
+  renderCaja();
+}
+
+// === Caja ===
 async function renderCaja() {
-  const pedidos = await _get("orders");
   const container = document.getElementById("caja");
   container.innerHTML = "";
+  let orders = await _get("orders");
 
-  pedidos.filter(p => p.estado === "entregado").forEach(p => {
-    const card = document.createElement("div");
-    card.className = "card p-2 mb-2";
-    card.innerHTML = `
-      <h5>${p.mesa}</h5>
-      <p>Total: $${p.total}</p>
-      <p>Detalle: ${p.items.map(i => i.nombre).join(", ")}</p>
+  let entregados = orders.filter(o => o.estado === "entregado");
+
+  entregados.forEach(order => {
+    const total = order.items.reduce((sum, i) => sum + Number(i.precio), 0);
+    const div = document.createElement("div");
+    div.className = "card mb-2";
+    div.innerHTML = `
+      <div class="card-body">
+        <h5>Mesa ${order.mesaId}</h5>
+        <ul>${order.items.map(i => `<li>${i.nombre} - $${i.precio}</li>`).join("")}</ul>
+        <p><strong>Total: $${total}</strong></p>
+        <button class="btn btn-primary" onclick="pay(${order.mesaId})">Pagar</button>
+      </div>
     `;
-    container.appendChild(card);
+    container.appendChild(div);
   });
 }
 
-// ============================
-// INICIALIZACIÓN
-// ============================
-document.addEventListener("DOMContentLoaded", async () => {
+async function pay(mesaId) {
+  await _post({ action: "payOrder", mesaId });
   renderTables();
-  renderMenu();
+  renderCaja();
+}
+
+// === Inicialización ===
+document.addEventListener("DOMContentLoaded", () => {
+  renderTables();
+  renderOrders();
+  renderCaja();
 });
