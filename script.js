@@ -1,4 +1,4 @@
-const API_URL = "TU_WEB_APP_URL"; // <- reemplaza con tu URL de Apps Script
+const API_URL = "https://script.google.com/macros/s/AKfycbzNiXqpas0d7prbb_rHGoR7p1EePl1bmVIuSHkia0v_7CcyagSBXtQCTmIePs-6EYtlCg/exec"; // <- reemplaza con tu URL de Apps Script
 
 /* --------------------- Helpers --------------------- */
 async function _get(action, params = {}) {
